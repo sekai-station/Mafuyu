@@ -1,0 +1,22 @@
+[project]
+name = "mafuyu-tests"
+version = "1.0.0"
+description = "Python integration tests for Mafuyu"
+requires-python = ">=3.10"
+dependencies = []
+
+[dependency-groups]
+dev = [
+    "pytest>=8,<10",
+    "pytest-asyncio>=0.24,<2",
+    "httpx>=0.27,<1",
+    "websockets>=13,<16",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"

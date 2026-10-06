@@ -1,0 +1,5 @@
+{
+  "name": "Rui",
+  "image": "ghcr.io/sekai-station/rui:latest",
+  "remoteUser": "vscode"
+}
