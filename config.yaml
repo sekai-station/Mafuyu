@@ -1,0 +1,50 @@
+host: 127.0.0.1
+port: 8888
+uds_path: /tmp/mafuyu_uds
+
+log_level: debug
+log_file: null
+log_file_level: null
+
+announcement_dir: announcements
+database_path: data.db
+
+backend:
+  # Minimum interval in seconds between accepted submissions for the same room ID.
+  unique_time: 10
+  # Remove rooms from memory when their submitted timestamp is older than this many seconds.
+  expire_time: 500
+  sqlite_record_keep_day: 14
+
+v1:
+  enabled: true
+  break_websocket_time: 6000
+
+v2:
+  enabled: true
+  send_avatar: true
+
+submission:
+  uds:
+    enabled: true
+  http:
+    enabled: true
+
+auth:
+  static:
+    enabled: true
+    clients:
+      - name: collector-a
+        token: "replace-with-your-private-token"
+  oauth:
+    enabled: false
+    # jwt: issuer-signed access tokens verified with public JWKS (RS256/ES256).
+    mode: jwt
+    issuer: https://auth.example.com
+    audience: mafuyu
+    jwks_url: https://auth.example.com/actual-jwks-endpoint
+    required_scopes: [rooms:submit]
+    # To use opaque tokens, change mode to introspection and configure the following:
+    # introspection_url: https://auth.example.com/actual-introspection-endpoint
+    # client_id: your-client-id
+    # client_secret_env: YOUR_CLIENT_SECRET

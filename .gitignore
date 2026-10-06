@@ -1,0 +1,19 @@
+# Runtime data and local configuration
+*.db
+*.db-shm
+*.db-wal
+*.log
+/main
+/server
+/dist/
+/config.local.yaml
+/auth.local.yaml
+.pytest_cache/
+__pycache__/
+.venv/
+.env
+
+/announcements/*
+!/announcements/.gitkeep
+/docs/
+deploy
