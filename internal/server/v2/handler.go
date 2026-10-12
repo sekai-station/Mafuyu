@@ -286,8 +286,24 @@ func (h *Handler) handleStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	now, _, peaks := h.broker.Presence().Snapshot()
+	onlineHistory, err := h.db.OnlineHistory(r.Context(), now)
+	if err != nil {
+		logger.Error.Error("query online history", "error", err)
+		middleware.WriteError(w, 503, 503, "statistics unavailable")
+		return
+	}
+	hour := now.Unix() / 3600 * 3600
+	if len(onlineHistory) > 0 && onlineHistory[len(onlineHistory)-1].Hour == hour {
+		current := &onlineHistory[len(onlineHistory)-1]
+		current.Peak = max(current.Peak, peaks[hour])
+	} else {
+		onlineHistory = append(onlineHistory, model.OnlineHour{Hour: hour, Peak: peaks[hour]})
+	}
+
 	middleware.WriteJSON(w, 200, map[string]any{
 		"pastCount":     pastCount,
 		"channelHealth": health,
+		"onlineHistory": onlineHistory,
 	})
 }

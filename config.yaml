@@ -9,6 +9,10 @@ log_file_level: null
 announcement_dir: announcements
 database_path: data.db
 
+online_stats:
+  sample_interval_seconds: 180
+  retention_days: 30
+
 backend:
   # Minimum interval in seconds between accepted submissions for the same room ID.
   unique_time: 10

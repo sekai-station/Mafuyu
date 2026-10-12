@@ -27,6 +27,37 @@ func TestLoadValidation(t *testing.T) {
 	}
 }
 
+func TestOnlineSampleInterval(t *testing.T) {
+	base := "port: 8888\nuds_path: /tmp/test.sock\nbackend:\n  expire_time: 500\n  sqlite_record_keep_day: 14\nv1:\n  break_websocket_time: 6000\n"
+	for _, tc := range []struct {
+		extra string
+		want  int
+		valid bool
+	}{
+		{"", 180, true},
+		{"online_stats:\n  sample_interval_seconds: 60\n", 60, true},
+		{"online_stats:\n  sample_interval_seconds: 0\n", 0, false},
+		{"online_stats:\n  sample_interval_seconds: 3601\n", 0, false},
+		{"online_stats:\n  retention_days: 0\n", 0, false},
+		{"online_stats:\n  retention_days: 3651\n", 0, false},
+	} {
+		path := filepath.Join(t.TempDir(), "config.yaml")
+		if err := os.WriteFile(path, []byte(base+tc.extra), 0600); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := Load(path)
+		if (err == nil) != tc.valid {
+			t.Fatalf("unexpected validation: %v", err)
+		}
+		if err == nil && cfg.OnlineStats.SampleIntervalSeconds != tc.want {
+			t.Fatalf("interval=%d", cfg.OnlineStats.SampleIntervalSeconds)
+		}
+		if err == nil && cfg.OnlineStats.RetentionDays != 30 {
+			t.Fatalf("default retention=%d", cfg.OnlineStats.RetentionDays)
+		}
+	}
+}
+
 func TestSendAvatar(t *testing.T) {
 	base := "port: 8888\nuds_path: /tmp/test.sock\nbackend:\n  unique_time: 0\n  expire_time: 500\n  sqlite_record_keep_day: 14\nv1:\n  break_websocket_time: 6000\n"
 	for _, tc := range []struct {

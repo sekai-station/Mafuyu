@@ -117,6 +117,14 @@ type Statistic struct {
 	Connections int `json:"connections"`
 }
 
+// OnlineHour is one hour's peak and arithmetic mean of sampled browser counts.
+type OnlineHour struct {
+	Hour    int64    `json:"hour"`
+	Peak    int      `json:"peak"`
+	Average *float64 `json:"average"`
+	Samples int      `json:"samples"`
+}
+
 // PastCount groups room submission counts for the last 15 min, 1 h, and 24 h.
 type PastCount struct {
 	Past15m int `json:"past15m"`

@@ -70,6 +70,16 @@ func migrate(db *sql.DB) error {
 			record_time INTEGER PRIMARY KEY,
 			past1h      INTEGER NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS online_hourly (
+			hour INTEGER PRIMARY KEY,
+			peak INTEGER NOT NULL,
+			average REAL,
+			samples INTEGER NOT NULL DEFAULT 0
+		)`,
+		`CREATE TABLE IF NOT EXISTS online_samples (
+			sample_time INTEGER PRIMARY KEY,
+			online INTEGER NOT NULL
+		)`,
 	}
 	for _, s := range stmts {
 		if _, err := db.Exec(s); err != nil {

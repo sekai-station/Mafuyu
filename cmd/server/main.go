@@ -176,6 +176,9 @@ func run() error {
 	var background sync.WaitGroup
 	workerErrors := make(chan error, 1)
 	start := func(fn func()) { background.Add(1); go func() { defer background.Done(); fn() }() }
+	start(func() {
+		database.RunOnlineRecorder(ctx, v2SseBroker.Presence(), cfg.OnlineStats.SampleIntervalSeconds, cfg.OnlineStats.RetentionDays)
+	})
 
 	// Expiry ticker: remove rooms older than expire_time every 10 seconds.
 	start(func() {
@@ -283,6 +286,7 @@ func run() error {
 		}
 	}
 	logger.Info.Info("shutting down")
+	finalOnlineTime, _, finalOnlinePeaks := v2SseBroker.Presence().Snapshot()
 	cancel()
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
@@ -296,6 +300,10 @@ func run() error {
 	background.Wait()
 	finalCtx, finalCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer finalCancel()
+	if err := database.RecordOnline(finalCtx, finalOnlineTime, cfg.OnlineStats.RetentionDays, finalOnlinePeaks, nil); err != nil {
+		logger.Error.Error("final online statistics", "error", err)
+		runErr = err
+	}
 	counts := st.FlushChannelCounts()
 	if err := database.SaveSnapshotContext(finalCtx, st.Snapshot(), counts); err != nil {
 		st.RestoreChannelCounts(counts)

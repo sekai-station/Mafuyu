@@ -11,20 +11,26 @@ import (
 
 // Config holds the top-level server configuration.
 type Config struct {
-	Host            string           `yaml:"host"`
-	Port            int              `yaml:"port"`
-	UDSPath         string           `yaml:"uds_path"`
-	LogLevel        string           `yaml:"log_level"`
-	LogFile         *string          `yaml:"log_file"`
-	LogFileLevel    *string          `yaml:"log_file_level"`
-	AnnouncementDir string           `yaml:"announcement_dir"`
-	Filter          *FilterConfig    `yaml:"filter"`
-	Backend         BackendConfig    `yaml:"backend"`
-	V1              V1Config         `yaml:"v1"`
-	V2              V2Config         `yaml:"v2"`
-	DatabasePath    string           `yaml:"database_path"`
-	Submission      SubmissionConfig `yaml:"submission"`
-	Auth            settings.Config  `yaml:"auth"`
+	Host            string            `yaml:"host"`
+	Port            int               `yaml:"port"`
+	UDSPath         string            `yaml:"uds_path"`
+	LogLevel        string            `yaml:"log_level"`
+	LogFile         *string           `yaml:"log_file"`
+	LogFileLevel    *string           `yaml:"log_file_level"`
+	AnnouncementDir string            `yaml:"announcement_dir"`
+	Filter          *FilterConfig     `yaml:"filter"`
+	Backend         BackendConfig     `yaml:"backend"`
+	V1              V1Config          `yaml:"v1"`
+	V2              V2Config          `yaml:"v2"`
+	DatabasePath    string            `yaml:"database_path"`
+	Submission      SubmissionConfig  `yaml:"submission"`
+	Auth            settings.Config   `yaml:"auth"`
+	OnlineStats     OnlineStatsConfig `yaml:"online_stats"`
+}
+
+type OnlineStatsConfig struct {
+	SampleIntervalSeconds int `yaml:"sample_interval_seconds"`
+	RetentionDays         int `yaml:"retention_days"`
 }
 
 type SubmissionConfig struct {
@@ -83,9 +89,10 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("read config: %w", err)
 	}
 	cfg := Config{
-		Submission: SubmissionConfig{UDS: UDSSubmissionConfig{Enabled: true}},
-		V1:         V1Config{Enabled: true},
-		V2:         V2Config{Enabled: true},
+		Submission:  SubmissionConfig{UDS: UDSSubmissionConfig{Enabled: true}},
+		V1:          V1Config{Enabled: true},
+		V2:          V2Config{Enabled: true},
+		OnlineStats: OnlineStatsConfig{SampleIntervalSeconds: 180, RetentionDays: 30},
 	}
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("parse config: %w", err)
@@ -101,6 +108,12 @@ func Load(path string) (*Config, error) {
 	}
 	if cfg.Port < 1 || cfg.Port > 65535 {
 		return nil, fmt.Errorf("port must be between 1 and 65535")
+	}
+	if cfg.OnlineStats.SampleIntervalSeconds < 1 || cfg.OnlineStats.SampleIntervalSeconds > 3600 {
+		return nil, fmt.Errorf("online_stats.sample_interval_seconds must be between 1 and 3600")
+	}
+	if cfg.OnlineStats.RetentionDays < 1 || cfg.OnlineStats.RetentionDays > 3650 {
+		return nil, fmt.Errorf("online_stats.retention_days must be between 1 and 3650")
 	}
 	if cfg.Submission.UDS.Enabled && cfg.UDSPath == "" {
 		return nil, fmt.Errorf("uds_path is required")
