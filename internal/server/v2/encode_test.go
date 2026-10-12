@@ -17,8 +17,8 @@ func TestEncodeHeartbeat(t *testing.T) {
 }
 
 func TestEncodeStatistic(t *testing.T) {
-	got := string(EncodeStatistic(12, 31))
-	want := `{"online":12,"past15m":31}`
+	got := string(EncodeStatistic(12, 31, 17))
+	want := `{"online":12,"past15m":31,"connections":17}`
 	if got != want {
 		t.Fatalf("got %s, want %s", got, want)
 	}

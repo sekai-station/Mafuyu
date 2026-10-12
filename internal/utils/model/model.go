@@ -112,8 +112,9 @@ type V1Message struct {
 
 // Statistic is returned by GET /station/api/v2/statistic.
 type Statistic struct {
-	Online  int `json:"online"`
-	Past15m int `json:"past15m"`
+	Online      int `json:"online"`
+	Past15m     int `json:"past15m"`
+	Connections int `json:"connections"`
 }
 
 // PastCount groups room submission counts for the last 15 min, 1 h, and 24 h.

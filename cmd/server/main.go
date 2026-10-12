@@ -129,8 +129,7 @@ func run() error {
 
 	var v1WsHandler *v1.WsHandler
 	if cfg.V1.Enabled {
-		v1WsHandler = v1.NewWsHandler(st, ann, cfg.V1.BreakWebsocketTime)
-		v2SseBroker.SetOnlineFn(v1WsHandler.OnlineCount)
+		v1WsHandler = v1.NewWsHandler(st, ann, cfg.V1.BreakWebsocketTime, v2SseBroker.Presence())
 	}
 
 	// Compose broadcast callbacks to fan out to both v2 SSE and v1 WS

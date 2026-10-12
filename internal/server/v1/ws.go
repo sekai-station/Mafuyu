@@ -9,6 +9,7 @@ import (
 
 	"mafuyu/internal/data/announce"
 	"mafuyu/internal/data/store"
+	"mafuyu/internal/server/presence"
 	"mafuyu/internal/utils/logger"
 	"mafuyu/internal/utils/model"
 
@@ -51,6 +52,7 @@ type WsHandler struct {
 	store     *store.Store
 	announce  *announce.Announcement
 	breakTime int
+	presence  *presence.Tracker
 
 	mu       sync.RWMutex
 	clients  map[*wsClient]struct{}
@@ -58,11 +60,15 @@ type WsHandler struct {
 	handlers sync.WaitGroup
 }
 
-func NewWsHandler(s *store.Store, a *announce.Announcement, breakTime int) *WsHandler {
+func NewWsHandler(s *store.Store, a *announce.Announcement, breakTime int, tracker *presence.Tracker) *WsHandler {
+	if tracker == nil {
+		tracker = presence.New()
+	}
 	return &WsHandler{
 		store:     s,
 		announce:  a,
 		breakTime: breakTime,
+		presence:  tracker,
 		clients:   make(map[*wsClient]struct{}),
 	}
 }
@@ -95,12 +101,14 @@ func (h *WsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.handlers.Add(1)
+	releasePresence := h.presence.Join(r.URL.Query().Get("client_id"))
 	h.clients[client] = struct{}{}
 	h.mu.Unlock()
 	defer h.handlers.Done()
 	logger.Info.Info("WS connected", "total", h.OnlineCount(), "ip", r.RemoteAddr)
 
 	defer func() {
+		defer releasePresence()
 		duration := time.Since(client.connectedAt).Round(time.Second)
 		h.mu.Lock()
 		delete(h.clients, client)

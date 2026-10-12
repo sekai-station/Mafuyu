@@ -18,7 +18,7 @@ func TestBroadcastDisconnectsClientWithFullQueue(t *testing.T) {
 	if err := logger.Init("error", "", ""); err != nil {
 		t.Fatal(err)
 	}
-	h := NewWsHandler(nil, nil, 0)
+	h := NewWsHandler(nil, nil, 0, nil)
 
 	registered := make(chan struct{})
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

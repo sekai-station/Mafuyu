@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"mafuyu/internal/server/presence"
 	"mafuyu/internal/utils/logger"
 	"mafuyu/internal/utils/model"
 )
@@ -18,9 +19,10 @@ const clientQueueSize = 128
 
 // Client represents one SSE subscriber. Ch receives pre-formatted SSE frames.
 type Client struct {
-	Ch        chan []byte
-	CreatedAt time.Time
-	Extra     bool // asked for info.extra (?extra=1)
+	Ch              chan []byte
+	CreatedAt       time.Time
+	Extra           bool // asked for info.extra (?extra=1)
+	releasePresence func()
 
 	kicked   chan struct{}
 	kickOnce sync.Once
@@ -48,8 +50,8 @@ type Broker struct {
 	clients map[*Client]struct{}
 
 	past15mFn  func() int // returns current past-15-min room count from the store
-	onlineFn   func() int // returns v1 WS online count; injected after construction
-	hideAvatar bool       // config v2.send_avatar: false
+	presence   *presence.Tracker
+	hideAvatar bool // config v2.send_avatar: false
 }
 
 // NewBroker creates a Broker. past15mFn is called every 30 seconds to produce
@@ -60,6 +62,7 @@ func NewBroker(past15mFn func() int, hideAvatar bool) *Broker {
 		clients:    make(map[*Client]struct{}),
 		past15mFn:  past15mFn,
 		hideAvatar: hideAvatar,
+		presence:   presence.New(),
 	}
 }
 
@@ -69,21 +72,21 @@ func (b *Broker) roomOptions(extra bool) RoomOptions {
 	return RoomOptions{HideAvatar: b.hideAvatar, Extra: extra}
 }
 
-// SetOnlineFn injects the function that returns the v1 WebSocket online count.
-// Called after both the broker and the WS handler are constructed.
-func (b *Broker) SetOnlineFn(fn func() int) {
-	b.onlineFn = fn
+// Presence is shared with v1 so a browser using both protocols counts once.
+func (b *Broker) Presence() *presence.Tracker {
+	return b.presence
 }
 
 // Subscribe registers a new SSE client and returns it. extra: the client asked
 // for info.extra in room events. The caller must call Unsubscribe when the
 // client disconnects.
-func (b *Broker) Subscribe(extra bool) *Client {
+func (b *Broker) Subscribe(extra bool, clientID string) *Client {
 	c := &Client{
-		Ch:        make(chan []byte, clientQueueSize),
-		CreatedAt: time.Now(),
-		Extra:     extra,
-		kicked:    make(chan struct{}),
+		Ch:              make(chan []byte, clientQueueSize),
+		CreatedAt:       time.Now(),
+		Extra:           extra,
+		kicked:          make(chan struct{}),
+		releasePresence: b.presence.Join(clientID),
 	}
 	b.mu.Lock()
 	b.clients[c] = struct{}{}
@@ -98,6 +101,7 @@ func (b *Broker) Unsubscribe(c *Client) {
 	duration := time.Since(c.CreatedAt).Round(time.Second)
 	b.mu.Lock()
 	delete(b.clients, c)
+	c.releasePresence()
 	total := len(b.clients)
 	b.mu.Unlock()
 	logger.Info.Info("SSE client disconnected", "total", total, "duration", duration)
@@ -110,13 +114,10 @@ func (b *Broker) SSEOnlineCount() int {
 	return len(b.clients)
 }
 
-// TotalOnlineCount returns SSE + v1 WebSocket clients combined.
+// TotalOnlineCount returns unique browsers with valid UUIDs across SSE and WS.
 func (b *Broker) TotalOnlineCount() int {
-	count := b.SSEOnlineCount()
-	if b.onlineFn != nil {
-		count += b.onlineFn()
-	}
-	return count
+	online, _ := b.presence.Counts()
+	return online
 }
 
 // broadcast sends data to every client's channel without blocking.
@@ -191,12 +192,12 @@ func (b *Broker) StartHeartbeat(ctx context.Context) {
 				b.broadcast(formatSSE("heartbeat", data))
 				logger.Info.Debug("SSE heartbeat sent", "clients", b.SSEOnlineCount())
 			} else {
-				online := b.TotalOnlineCount()
+				online, connections := b.presence.Counts()
 				past15m := 0
 				if b.past15mFn != nil {
 					past15m = b.past15mFn()
 				}
-				data := EncodeStatistic(online, past15m)
+				data := EncodeStatistic(online, past15m, connections)
 				b.broadcast(formatSSE("statistic", data))
 				logger.Info.Debug("SSE statistic sent", "online", online, "past15m", past15m)
 			}

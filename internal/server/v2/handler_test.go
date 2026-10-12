@@ -40,9 +40,12 @@ func TestStreamWriteFailureUnsubscribes(t *testing.T) {
 	logger.Init("error", "", "")
 	b := NewBroker(nil, false)
 	h := NewHandler(store.New(0, 500), b, nil, nil, nil)
-	h.handleRealtime(&failedStream{header: make(http.Header)}, httptest.NewRequest("GET", "/", nil))
+	h.handleRealtime(&failedStream{header: make(http.Header)}, httptest.NewRequest("GET", "/?client_id=ce8bdafd-a8b7-49b0-80f3-ad945fbba189", nil))
 	if b.SSEOnlineCount() != 0 {
 		t.Fatal("failed stream retained a subscriber")
+	}
+	if online, connections := b.Presence().Counts(); online != 0 || connections != 0 {
+		t.Fatalf("failed stream retained presence: (%d, %d)", online, connections)
 	}
 }
 

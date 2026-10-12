@@ -45,8 +45,8 @@ func EncodeHeartbeat(t int64) []byte {
 }
 
 // EncodeStatistic returns a statistic payload: {"online": n, "past15m": n}.
-func EncodeStatistic(online, past15m int) []byte {
-	return mustMarshal(model.Statistic{Online: online, Past15m: past15m})
+func EncodeStatistic(online, past15m, connections int) []byte {
+	return mustMarshal(model.Statistic{Online: online, Past15m: past15m, Connections: connections})
 }
 
 // EncodeRoom returns a room payload, identical to one element of /recent.

@@ -13,8 +13,8 @@ func TestBroadcastDisconnectsClientWithFullQueue(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := NewBroker(nil, false)
-	slow := b.Subscribe(false) // never reads
-	fast := b.Subscribe(false)
+	slow := b.Subscribe(false, "") // never reads
+	fast := b.Subscribe(false, "")
 	defer b.Unsubscribe(slow)
 	defer b.Unsubscribe(fast)
 
@@ -50,8 +50,8 @@ func TestBroadcastRoomInfoExtraOnlyForClientsThatAsked(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := NewBroker(nil, false)
-	plain := b.Subscribe(false)
-	full := b.Subscribe(true)
+	plain := b.Subscribe(false, "")
+	full := b.Subscribe(true, "")
 	defer b.Unsubscribe(plain)
 	defer b.Unsubscribe(full)
 
@@ -69,7 +69,7 @@ func TestBroadcastRoomSkills(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := NewBroker(nil, false)
-	plain, full := b.Subscribe(false), b.Subscribe(true)
+	plain, full := b.Subscribe(false, ""), b.Subscribe(true, "")
 	defer b.Unsubscribe(plain)
 	defer b.Unsubscribe(full)
 	b.BroadcastRoomSkills(&model.RoomSkills{ID: "12345", Time: 1777083784, Data: []int{100, 200}})

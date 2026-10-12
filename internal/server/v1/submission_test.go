@@ -33,7 +33,7 @@ func TestSubmissionSwitchAndAuth(t *testing.T) {
 		{true, "/station/api/v1/", "v1-api-key", 200},
 	} {
 		s := store.New(0, 500)
-		h := NewHandler(NewWsHandler(s, nil, 60), s, nil)
+		h := NewHandler(NewWsHandler(s, nil, 60, nil), s, nil)
 		mux := http.NewServeMux()
 		if tc.enabled {
 			h.RegisterRoutes(mux, m)

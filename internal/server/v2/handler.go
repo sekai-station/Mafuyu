@@ -86,7 +86,7 @@ func (h *Handler) handleRealtime(w http.ResponseWriter, r *http.Request) {
 	}
 
 	opts := h.broker.roomOptions(wantsExtra(r))
-	client := h.broker.Subscribe(opts.Extra)
+	client := h.broker.Subscribe(opts.Extra, r.URL.Query().Get("client_id"))
 	defer h.broker.Unsubscribe(client)
 	controller := http.NewResponseController(w)
 	writeFrame := func(data []byte) error {
@@ -158,9 +158,11 @@ func wantsExtra(r *http.Request) bool {
 // handleStatistic returns the combined online count (SSE + v1 WS) and the
 // number of rooms submitted in the last 15 minutes.
 func (h *Handler) handleStatistic(w http.ResponseWriter, r *http.Request) {
+	online, connections := h.broker.Presence().Counts()
 	stat := model.Statistic{
-		Online:  h.broker.TotalOnlineCount(),
-		Past15m: h.store.Past15mCount(),
+		Online:      online,
+		Connections: connections,
+		Past15m:     h.store.Past15mCount(),
 	}
 	middleware.WriteJSON(w, 200, stat)
 }
